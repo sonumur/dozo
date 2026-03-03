@@ -169,18 +169,28 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
     }, [messages]);
 
     const createPeerConnection = (targetId: string) => {
+        console.log('Creating RTCPeerConnection for partner:', targetId);
         const pc = new RTCPeerConnection({
             iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
         });
 
+        pc.oniceconnectionstatechange = () => {
+            console.log(`ICE Connection State: ${pc.iceConnectionState}`);
+            if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+                setMessages(prev => [...prev, { text: 'Connection failed. Trying to reconnect...', type: 'system' }]);
+            }
+        };
+
         pc.onicecandidate = (event) => {
             if (event.candidate) {
+                console.log('Generated ICE Candidate');
                 socket.emit('signal', { target: targetId, signal: { ice: event.candidate } });
             }
         };
 
         pc.ontrack = (event) => {
-            if (remoteVideoRef.current) {
+            console.log('Received remote track:', event.track.kind);
+            if (remoteVideoRef.current && event.streams[0]) {
                 remoteVideoRef.current.srcObject = event.streams[0];
             }
         };
