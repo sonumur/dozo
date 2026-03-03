@@ -18,6 +18,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
     const isNegotiating = useRef(false);
+    const pendingIceCandidates = useRef<RTCIceCandidateInit[]>([]);
 
     useEffect(() => {
         const stopMedia = () => {
@@ -103,6 +104,13 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
                     }
 
                     await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+
+                    // Process queued candidates
+                    while (pendingIceCandidates.current.length > 0) {
+                        const candidate = pendingIceCandidates.current.shift();
+                        if (candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                    }
+
                     if (signal.sdp.type === 'offer' && localStreamRef.current) {
                         localStreamRef.current.getTracks().forEach(track => {
                             if (localStreamRef.current) {
@@ -116,7 +124,11 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
                         socket.emit('signal', { target: from, signal: { sdp: pc.localDescription } });
                     }
                 } else if (signal.ice) {
-                    await pc.addIceCandidate(new RTCIceCandidate(signal.ice));
+                    if (pc.remoteDescription && pc.remoteDescription.type) {
+                        await pc.addIceCandidate(new RTCIceCandidate(signal.ice));
+                    } else {
+                        pendingIceCandidates.current.push(signal.ice);
+                    }
                 }
             } catch (err) {
                 console.error('Error handling signal.', err);
