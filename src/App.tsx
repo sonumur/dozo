@@ -4,6 +4,7 @@ import ChatRoom from './components/ChatRoom';
 import { io } from 'socket.io-client';
 
 const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+console.log('Connecting to socket at:', socketUrl);
 const socket = io(socketUrl);
 
 function App() {
