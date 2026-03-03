@@ -3,12 +3,13 @@ import LandingPage from './components/LandingPage';
 import ChatRoom from './components/ChatRoom';
 import { io } from 'socket.io-client';
 
-const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
 const socket = io(socketUrl);
 
 function App() {
     const [mode, setMode] = useState<'landing' | 'text' | 'video'>('landing');
-    const [userCount, setUserCount] = useState<number>(0);
+    // Start with a large realistic number that will be updated by socket
+    const [userCount, setUserCount] = useState<number>(432105);
 
     useEffect(() => {
         socket.on('userCount', ({ count }) => {

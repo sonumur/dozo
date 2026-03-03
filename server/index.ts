@@ -1,6 +1,11 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
@@ -10,6 +15,10 @@ const io = new Server(httpServer, {
         methods: ['GET', 'POST']
     }
 });
+
+// Serve static files from the React app build folder
+const distPath = path.join(__dirname, '../dist');
+app.use(express.static(distPath));
 
 interface User {
     id: string;
@@ -23,15 +32,17 @@ const activeUsers = new Map<string, User>();
 
 function broadcastUserCount() {
     const realCount = io.engine.clientsCount;
-    // Base number 100k + real count + small random jitter
-    const fakeBase = 120542;
-    const jitter = Math.floor(Math.random() * 50);
-    const countToEmit = realCount + fakeBase + jitter;
+    // Base number 400k + real count + oscillating jitter
+    const fakeBase = 432105;
+    const timeRef = Date.now() / 10000; // Changes every 10 seconds
+    const slowOscillation = Math.floor(Math.sin(timeRef) * 200);
+    const jitter = Math.floor(Math.random() * 80);
+    const countToEmit = realCount + fakeBase + slowOscillation + jitter;
     io.emit('userCount', { count: countToEmit });
 }
 
-// Broadcast every 10 seconds to keep it "live"
-setInterval(broadcastUserCount, 10000);
+// Broadcast every 5 seconds to keep it "live"
+setInterval(broadcastUserCount, 5000);
 
 io.on('connection', (socket: Socket) => {
     console.log(`User connected: ${socket.id}`);
@@ -124,7 +135,12 @@ function disconnectPartner(user: User) {
     }
 }
 
-const PORT = 3001;
+// Catch-all route to serve the React app
+app.get('*', (_req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+});
+
+const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
