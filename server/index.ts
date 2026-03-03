@@ -22,7 +22,7 @@ app.use(express.static(distPath));
 
 // Health check and generic root response for backend-only hosting
 app.get('/health', (_req, res) => res.status(200).send('OK'));
-app.get('/', (req, res, next) => {
+app.get('/', (_req, res, _next) => {
     // Only serve index.html if it exists, otherwise provide a friendly message
     res.sendFile(path.join(distPath, 'index.html'), (err) => {
         if (err) {
