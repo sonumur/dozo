@@ -230,23 +230,35 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
             </div>
 
             <div className="content-classic">
-                {mode === 'video' && (
-                    <div className="video-area-classic">
-                        <div className="video-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                            {status === 'waiting' ? (
+                <div className="video-area-classic" style={{ display: mode === 'video' ? 'flex' : 'none' }}>
+                    <div className="video-box">
+                        {status === 'waiting' && (
+                            <div className="video-placeholder" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000', zIndex: 2 }}>
                                 <div style={{ textAlign: 'center' }}>
                                     <div className="spinner"></div>
-                                    <div style={{ fontSize: '12px', marginTop: '10px' }}>Finding...</div>
+                                    <div style={{ fontSize: '12px', marginTop: '10px', color: '#fff' }}>Finding...</div>
                                 </div>
-                            ) : (
-                                <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            )}
-                        </div>
-                        <div className="video-box">
-                            <video ref={localVideoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </div>
+                            </div>
+                        )}
+                        <video
+                            ref={remoteVideoRef}
+                            autoPlay
+                            playsInline
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onLoadedMetadata={() => remoteVideoRef.current?.play().catch(e => console.error("Remote video play failed", e))}
+                        />
                     </div>
-                )}
+                    <div className="video-box">
+                        <video
+                            ref={localVideoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onLoadedMetadata={() => localVideoRef.current?.play().catch(e => console.error("Local video play failed", e))}
+                        />
+                    </div>
+                </div>
 
                 <div className="msg-area-classic">
                     <div className="messages-list">
