@@ -59,7 +59,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
             });
         });
 
-        socket.on('paired', async ({ partnerId }) => {
+        socket.on('paired', async ({ partnerId, initiator }) => {
             setStatus('paired');
             setPartnerId(partnerId);
             setMessages([{ text: 'You are now chatting with a random stranger.', type: 'system' }]);
@@ -74,15 +74,17 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
                     }
                 });
 
-                try {
-                    isNegotiating.current = true;
-                    const offer = await pc.createOffer();
-                    await pc.setLocalDescription(offer);
-                    socket.emit('signal', { target: partnerId, signal: { sdp: pc.localDescription } });
-                } catch (err) {
-                    console.error('Failed to create offer', err);
-                } finally {
-                    isNegotiating.current = false;
+                if (initiator) {
+                    try {
+                        isNegotiating.current = true;
+                        const offer = await pc.createOffer();
+                        await pc.setLocalDescription(offer);
+                        socket.emit('signal', { target: partnerId, signal: { sdp: pc.localDescription } });
+                    } catch (err) {
+                        console.error('Failed to create offer', err);
+                    } finally {
+                        isNegotiating.current = false;
+                    }
                 }
             }
         });
@@ -98,14 +100,12 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
 
             try {
                 if (signal.sdp) {
-                    // Signaling race mitigation
                     if (isNegotiating.current || pc.signalingState !== 'stable') {
-                        if (signal.sdp.type === 'offer') return; // Ignore offer if busy
+                        if (signal.sdp.type === 'offer') return;
                     }
 
                     await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
 
-                    // Process queued candidates
                     while (pendingIceCandidates.current.length > 0) {
                         const candidate = pendingIceCandidates.current.shift();
                         if (candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
@@ -169,27 +169,23 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
     }, [messages]);
 
     const createPeerConnection = (targetId: string) => {
-        console.log('Creating RTCPeerConnection for partner:', targetId);
         const pc = new RTCPeerConnection({
             iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
         });
 
         pc.oniceconnectionstatechange = () => {
-            console.log(`ICE Connection State: ${pc.iceConnectionState}`);
             if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-                setMessages(prev => [...prev, { text: 'Connection failed. Trying to reconnect...', type: 'system' }]);
+                setMessages(prev => [...prev, { text: 'Connection lost. Please try "New" if it does not recover.', type: 'system' }]);
             }
         };
 
         pc.onicecandidate = (event) => {
             if (event.candidate) {
-                console.log('Generated ICE Candidate');
                 socket.emit('signal', { target: targetId, signal: { ice: event.candidate } });
             }
         };
 
         pc.ontrack = (event) => {
-            console.log('Received remote track:', event.track.kind);
             if (remoteVideoRef.current && event.streams[0]) {
                 remoteVideoRef.current.srcObject = event.streams[0];
             }
@@ -245,7 +241,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
                             autoPlay
                             playsInline
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            onLoadedMetadata={() => remoteVideoRef.current?.play().catch(e => console.error("Remote video play failed", e))}
+                            onLoadedMetadata={() => remoteVideoRef.current?.play().catch(() => { })}
                         />
                     </div>
                     <div className="video-box">
@@ -255,7 +251,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
                             playsInline
                             muted
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            onLoadedMetadata={() => localVideoRef.current?.play().catch(e => console.error("Local video play failed", e))}
+                            onLoadedMetadata={() => localVideoRef.current?.play().catch(() => { })}
                         />
                     </div>
                 </div>

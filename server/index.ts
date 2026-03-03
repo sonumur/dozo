@@ -125,8 +125,8 @@ function findPartner(user: User) {
         user.partnerId = partner.id;
         partner.partnerId = user.id;
 
-        user.socket.emit('paired', { partnerId: partner.id });
-        partner.socket.emit('paired', { partnerId: user.id });
+        user.socket.emit('paired', { partnerId: partner.id, initiator: true });
+        partner.socket.emit('paired', { partnerId: user.id, initiator: false });
 
         console.log(`Paired: ${user.id} <-> ${partner.id}`);
     } else {
