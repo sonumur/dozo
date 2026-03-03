@@ -163,6 +163,23 @@ button {
     font-weight: bold;
 }
 
+.app-logo {
+    width: 60px;
+    height: auto;
+    margin-bottom: 20px;
+}
+
+.header-logo {
+    width: 30px;
+    height: auto;
+    margin-right: 10px;
+}
+
+.header-title-area {
+    display: flex;
+    align-items: center;
+}
+
 .live-header {
     height: 40px;
     display: flex;

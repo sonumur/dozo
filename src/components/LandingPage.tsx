@@ -6,7 +6,8 @@ interface LandingPageProps {
 
 const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
     return (
-        <div style={{ textAlign: 'center', padding: '50px 20px', maxWidth: '800px', margin: '0 auto', position: 'relative', minHeight: '100vh' }}>
+        <div style={{ textAlign: 'center', padding: '50px 20px', maxWidth: '800px', margin: '0 auto', position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <img src="/logo.png" alt="Dozu Logo" className="app-logo" />
             <h1>Dozu</h1>
             <div className="logo-sub">Talk to strangers!</div>
 

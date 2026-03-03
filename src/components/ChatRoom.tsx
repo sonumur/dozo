@@ -218,7 +218,10 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
     return (
         <div className="chat-container-classic" style={{ height: 'calc(100vh - 40px)' }}>
             <div className="header-classic">
-                <h2 style={{ color: '#0044cc', margin: 0 }}>Dozu {mode === 'video' ? 'Video' : 'Text'}</h2>
+                <div className="header-title-area">
+                    <img src="/logo.png" alt="Dozu" className="header-logo" />
+                    <h2 style={{ color: '#0044cc', margin: 0 }}>Dozu {mode === 'video' ? 'Video' : 'Text'}</h2>
+                </div>
                 <div>
                     <button className="btn-classic" onClick={onExit} style={{ marginRight: '10px' }}>Exit</button>
                     <button className="btn-classic" style={{ fontWeight: 'bold' }} onClick={handleNext}>New</button>
