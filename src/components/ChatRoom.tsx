@@ -17,13 +17,13 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
     const [partnerId, setPartnerId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
+    const isNegotiating = useRef(false);
 
     useEffect(() => {
         const stopMedia = () => {
             if (localStreamRef.current) {
                 localStreamRef.current.getTracks().forEach(track => {
                     track.stop();
-                    console.log(`Stopped track: ${track.kind}`);
                 });
                 localStreamRef.current = null;
             }
@@ -39,12 +39,11 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
                 } catch (err) {
                     console.error('Error accessing media devices.', err);
                     setStatus('error');
-                    setMessages([{ text: 'Error: Camera and Microphone access is required for video chat. Please enable them in your browser settings and refresh.', type: 'system' }]);
-                    stopMedia(); // Call stopMedia on error
-                    return; // Stop if video mode fails to get media
+                    setMessages([{ text: 'Error: Camera and Microphone access is required. Please enable them and refresh.', type: 'system' }]);
+                    stopMedia();
+                    return;
                 }
             }
-
             socket.emit('join', { mode });
         };
 
@@ -54,11 +53,6 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
             setPartnerId(currentPartnerId => {
                 if (!currentPartnerId) {
                     setStatus('waiting');
-                    setMessages(prev => {
-                        const lastMsg = prev[prev.length - 1];
-                        if (lastMsg?.text === 'Looking for someone you can chat with...') return prev;
-                        return [...prev, { text: 'Looking for someone you can chat with...', type: 'system' }];
-                    });
                 }
                 return currentPartnerId;
             });
@@ -67,40 +61,65 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
         socket.on('paired', async ({ partnerId }) => {
             setStatus('paired');
             setPartnerId(partnerId);
-            setMessages([{ text: 'You are now chatting with a random stranger. Say hi!', type: 'system' }]);
+            setMessages([{ text: 'You are now chatting with a random stranger.', type: 'system' }]);
 
             if (mode === 'video' && localStreamRef.current) {
                 const pc = createPeerConnection(partnerId);
+
                 localStreamRef.current.getTracks().forEach(track => {
-                    if (localStreamRef.current) pc.addTrack(track, localStreamRef.current);
+                    if (localStreamRef.current) {
+                        const senderExists = pc.getSenders().some(s => s.track === track);
+                        if (!senderExists) pc.addTrack(track, localStreamRef.current);
+                    }
                 });
 
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                socket.emit('signal', { target: partnerId, signal: { sdp: pc.localDescription } });
+                try {
+                    isNegotiating.current = true;
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+                    socket.emit('signal', { target: partnerId, signal: { sdp: pc.localDescription } });
+                } catch (err) {
+                    console.error('Failed to create offer', err);
+                } finally {
+                    isNegotiating.current = false;
+                }
             }
         });
 
         socket.on('signal', async ({ from, signal }) => {
-            if (!peerConnectionRef.current && mode === 'video') {
+            if (mode !== 'video') return;
+
+            if (!peerConnectionRef.current) {
                 createPeerConnection(from);
             }
             const pc = peerConnectionRef.current;
             if (!pc) return;
 
-            if (signal.sdp) {
-                await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-                if (signal.sdp.type === 'offer' && localStreamRef.current) {
-                    localStreamRef.current.getTracks().forEach(track => {
-                        if (localStreamRef.current) pc.addTrack(track, localStreamRef.current);
-                    });
+            try {
+                if (signal.sdp) {
+                    // Signaling race mitigation
+                    if (isNegotiating.current || pc.signalingState !== 'stable') {
+                        if (signal.sdp.type === 'offer') return; // Ignore offer if busy
+                    }
 
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-                    socket.emit('signal', { target: from, signal: { sdp: pc.localDescription } });
+                    await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                    if (signal.sdp.type === 'offer' && localStreamRef.current) {
+                        localStreamRef.current.getTracks().forEach(track => {
+                            if (localStreamRef.current) {
+                                const senderExists = pc.getSenders().some(s => s.track === track);
+                                if (!senderExists) pc.addTrack(track, localStreamRef.current);
+                            }
+                        });
+
+                        const answer = await pc.createAnswer();
+                        await pc.setLocalDescription(answer);
+                        socket.emit('signal', { target: from, signal: { sdp: pc.localDescription } });
+                    }
+                } else if (signal.ice) {
+                    await pc.addIceCandidate(new RTCIceCandidate(signal.ice));
                 }
-            } else if (signal.ice) {
-                await pc.addIceCandidate(new RTCIceCandidate(signal.ice));
+            } catch (err) {
+                console.error('Error handling signal.', err);
             }
         });
 
@@ -111,7 +130,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
         socket.on('partnerDisconnected', () => {
             setPartnerId(null);
             setMessages(prev => [...prev, { text: 'Stranger has disconnected.', type: 'system' }]);
-            setStatus('paired'); // Keep UI interactive but without partner
+            setStatus('waiting');
             if (peerConnectionRef.current) {
                 peerConnectionRef.current.close();
                 peerConnectionRef.current = null;
@@ -129,7 +148,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ mode, onExit, socket }) => {
                 peerConnectionRef.current.close();
                 peerConnectionRef.current = null;
             }
-            stopMedia(); // Call stopMedia in cleanup
+            stopMedia();
         };
     }, [mode, socket]);
 
