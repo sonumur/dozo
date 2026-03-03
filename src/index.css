@@ -129,6 +129,12 @@ button {
     aspect-ratio: 4/3;
     background: #000;
     border: 1px solid #555;
+    position: relative;
+    /* Contain the absolute child */
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .status-msg {

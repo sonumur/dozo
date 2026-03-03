@@ -111,9 +111,11 @@ io.on('connection', (socket: Socket) => {
 });
 
 function findPartner(user: User) {
+    console.log(`Searching partner for ${user.id} (${user.mode})`);
     // Clear any existing presence in queue first
     const existingQueueIndex = waitingQueue.findIndex(u => u.id === user.id);
     if (existingQueueIndex !== -1) {
+        console.log(`Removing ${user.id} from existing queue position`);
         waitingQueue.splice(existingQueueIndex, 1);
     }
 
@@ -125,11 +127,11 @@ function findPartner(user: User) {
         user.partnerId = partner.id;
         partner.partnerId = user.id;
 
+        console.log(`MATCHED: ${user.id} <-> ${partner.id}`);
         user.socket.emit('paired', { partnerId: partner.id, initiator: true });
         partner.socket.emit('paired', { partnerId: user.id, initiator: false });
-
-        console.log(`Paired: ${user.id} <-> ${partner.id}`);
     } else {
+        console.log(`No partner found for ${user.id}. Adding to queue. Queue size: ${waitingQueue.length + 1}`);
         waitingQueue.push(user);
         user.socket.emit('waiting');
     }
