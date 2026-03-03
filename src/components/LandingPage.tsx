@@ -10,7 +10,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             <img src="/logo.png" alt="Dozu Logo" className="app-logo" style={{ width: '80px', height: 'auto', marginBottom: '10px' }} />
             <h1 style={{ fontSize: '3rem', marginBottom: '5px' }}>Dozu</h1>
             <h2 className="logo-sub" style={{ fontSize: '1.2rem', color: '#666', fontWeight: 'normal', marginBottom: '40px' }}>
-                The Ultimate Omegle Alternative for Anonymous Chat
+                Global Anonymous Video Chat & Text
             </h2>
 
             <section style={{ margin: '20px 0', width: '100%' }}>
@@ -31,10 +31,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             <section style={{ textAlign: 'left', margin: '40px 0', lineHeight: '1.6', color: '#333' }}>
                 <h3 style={{ fontSize: '28px', color: '#0044cc', marginBottom: '20px' }}>What is Dozu?</h3>
                 <p style={{ marginBottom: '15px' }}>
-                    Looking for a safe and fast **Omegle alternative**? Dozu is a leading global platform for **anonymous random video chat**. We connect you with strangers from around the world instantly, allowing you to have meaningful or fun conversations without revealing your identity.
+                    Dozu is a leading global platform for **anonymous random video chat**. We connect you with strangers from around the world instantly, allowing you to have meaningful or fun conversations without revealing your identity.
                 </p>
                 <p style={{ marginBottom: '30px' }}>
-                    Since the closure of Omegle, millions of users have been searching for a reliable **random chat app**. Dozu fills that gap by providing a seamless, no-registration experience for both text and video communication.
+                    Our mission is to provide a safe, simple, and reliable **random chat app**. Dozu provides a seamless, no-registration experience for both text and video communication.
                 </p>
 
                 <h3 style={{ fontSize: '28px', color: '#0044cc', marginBottom: '20px' }}>Why Choose Dozu for Random Chat?</h3>
@@ -63,7 +63,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             </section>
 
             <div style={{ margin: '40px 0', fontSize: '12px', color: '#666', borderTop: '1px solid #eee', paddingTop: '20px', width: '100%' }}>
-                © 2024 Dozu - The Best Omegle Alternative for Anonymous Random Video Chat. All rights reserved.
+                © 2024 Dozu - The Best Global Random Video Chat Platform. All rights reserved.
                 <br />
                 By using Dozu, you accept our community guidelines. Stay safe and be respectful!
             </div>
